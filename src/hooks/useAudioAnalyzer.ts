@@ -7,12 +7,13 @@ export interface PitchData {
   cents: number;
 }
 
-export function useAudioAnalyzer(noiseThreshold: number = 0.01) {
+export function useAudioAnalyzer(noiseThreshold: number = 0.01, micGain: number = 1.0) {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   
@@ -31,15 +32,21 @@ export function useAudioAnalyzer(noiseThreshold: number = 0.01) {
       const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
       const audioContext = new AudioContextCtor();
       const analyser = audioContext.createAnalyser();
+      const gainNode = audioContext.createGain();
       
       analyser.fftSize = 4096;
       analyser.smoothingTimeConstant = 0.8;
       
+      // We set the initial gain here
+      gainNode.gain.value = micGain;
+      
       const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
+      source.connect(gainNode);
+      gainNode.connect(analyser);
 
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
+      gainNodeRef.current = gainNode;
       sourceRef.current = source;
       streamRef.current = stream;
 
@@ -67,6 +74,13 @@ export function useAudioAnalyzer(noiseThreshold: number = 0.01) {
       stopAudio();
     };
   }, [stopAudio]);
+
+  // Update gain when micGain changes
+  useEffect(() => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = micGain;
+    }
+  }, [micGain]);
 
   // Pitch detection loop
   useEffect(() => {

@@ -6,7 +6,8 @@ import { Mic, MicOff, Camera, Activity, BarChart2, Volume2, TreePine } from 'luc
 
 export default function App() {
   const [noiseThreshold, setNoiseThreshold] = useState(0.01);
-  const { isReady, error, startAudio, stopAudio, analyser, pitchData } = useAudioAnalyzer(noiseThreshold);
+  const [micGain, setMicGain] = useState(1.5);
+  const { isReady, error, startAudio, stopAudio, analyser, pitchData } = useAudioAnalyzer(noiseThreshold, micGain);
   
   const [mode, setMode] = useState<'spectrum' | 'wave'>('spectrum');
   const [snapshotData, setSnapshotData] = useState<Uint8Array | null>(null);
@@ -104,10 +105,30 @@ export default function App() {
               </div>
             </div>
 
+            {/* Mic Gain Slider */}
+            <div className="mb-6">
+              <label className="text-sm font-bold text-stone-500 mb-3 flex justify-between">
+                <span>マイクの音の大きさ（感度）</span>
+                <span className="text-amber-600">x{micGain.toFixed(1)}</span>
+              </label>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="5.0" 
+                step="0.1"
+                value={micGain}
+                onChange={(e) => setMicGain(parseFloat(e.target.value))}
+                className="w-full h-3 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              />
+              <p className="text-xs text-stone-400 mt-2">
+                音が小さくて反応しないときは、数字を大きくしてください。
+              </p>
+            </div>
+
             {/* Noise Gate Slider */}
             <div>
               <label className="text-sm font-bold text-stone-500 mb-3 flex justify-between">
-                <span>ちいさい音をかきけす（感度）</span>
+                <span>まわりの雑音をかきけす</span>
                 <span className="text-amber-600">{Math.round(noiseThreshold * 1000)}</span>
               </label>
               <input 
