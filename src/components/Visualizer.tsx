@@ -4,9 +4,10 @@ interface VisualizerProps {
   analyser: AnalyserNode | null;
   mode: 'spectrum' | 'wave';
   snapshotData: Uint8Array | null;
+  transparentMode?: boolean;
 }
 
-export function Visualizer({ analyser, mode, snapshotData }: VisualizerProps) {
+export function Visualizer({ analyser, mode, snapshotData, transparentMode = false }: VisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -37,8 +38,12 @@ export function Visualizer({ analyser, mode, snapshotData }: VisualizerProps) {
       const height = canvas.height;
 
       // Clear background
-      ctx.fillStyle = '#fdfbf7'; // Wood-like light background matches theme
-      ctx.fillRect(0, 0, width, height);
+      if (transparentMode) {
+        ctx.clearRect(0, 0, width, height);
+      } else {
+        ctx.fillStyle = '#fdfbf7'; // Wood-like light background matches theme
+        ctx.fillRect(0, 0, width, height);
+      }
 
       // Draw snapshot if available
       if (snapshotData) {
@@ -128,7 +133,7 @@ export function Visualizer({ analyser, mode, snapshotData }: VisualizerProps) {
   };
 
   return (
-    <div ref={containerRef} className="w-full h-full relative rounded-2xl overflow-hidden shadow-inner bg-[#fdfbf7]">
+    <div ref={containerRef} className={`w-full h-full relative rounded-2xl overflow-hidden shadow-inner ${transparentMode ? 'bg-transparent' : 'bg-[#fdfbf7]'}`}>
       <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
       <div className="absolute top-4 left-4 bg-white/70 px-3 py-1 rounded-full text-xs font-bold text-amber-900 border border-amber-200">
         {mode === 'spectrum' ? '成分 (スペクトル)' : '波の形 (波形)'}

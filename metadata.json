@@ -1,6 +1,6 @@
 {
   "name": "音の見える化チューナー",
   "description": "マイク入力から音の成分（スペクトル）と音程をリアルタイムに可視化し、木材による音の違いなどを比較できるワークショップ向けのWebアプリケーション。",
-  "requestFramePermissions": ["microphone"],
+  "requestFramePermissions": ["microphone", "camera"],
   "majorCapabilities": []
 }
