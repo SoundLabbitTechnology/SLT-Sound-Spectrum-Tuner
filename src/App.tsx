@@ -3,7 +3,7 @@ import { useAudioAnalyzer, PitchData } from './hooks/useAudioAnalyzer';
 import { useCamera } from './hooks/useCamera';
 import { Visualizer } from './components/Visualizer';
 import { TunerDisplay } from './components/TunerDisplay';
-import { Mic, MicOff, Camera, Activity, BarChart2, Volume2, TreePine, Eye, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Camera, Activity, BarChart2, Volume2, TreePine, Eye, Sparkles, Settings, X, Key } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { noteJapaneseStrings } from './lib/audioPitch';
 
@@ -21,6 +21,10 @@ export default function App() {
   const [aiAdvice, setAiAdvice] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [lastPitch, setLastPitch] = useState<PitchData | null>(null);
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [tempApiKey, setTempApiKey] = useState('');
 
   useEffect(() => {
     if (pitchData) {
@@ -44,12 +48,26 @@ export default function App() {
     }
   };
 
+  const handleSaveApiKey = () => {
+    setCustomApiKey(tempApiKey);
+    localStorage.setItem('gemini_api_key', tempApiKey);
+    setShowSettings(false);
+  };
+
   const askAI = async () => {
     if (!isCameraReady || !videoRef.current) return;
     
     setIsAiLoading(true);
+
+    const apiKeyToUse = customApiKey || process.env.GEMINI_API_KEY;
+    if (!apiKeyToUse) {
+      setAiAdvice('APIキーが設定されていません。右上の設定ボタンからGemini APIキーを入力してください。');
+      setIsAiLoading(false);
+      return;
+    }
+
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
       
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
@@ -83,7 +101,7 @@ export default function App() {
       setAiAdvice(response.text || 'アドバイスができなかったよ。もう一度ためしてみてね！');
     } catch (err) {
       console.error(err);
-      setAiAdvice('AIせんせいに繋がらなかったみたい…。時間をあけてもう一度ためしてね。');
+      setAiAdvice('AIせんせいに繋がらなかったみたい…。APIキーが間違っていないか確認してね。');
     } finally {
       setIsAiLoading(false);
     }
@@ -155,6 +173,18 @@ export default function App() {
         </div>
         
         <div className="flex gap-2 w-full md:w-auto justify-end">
+          <button
+            onClick={() => { setTempApiKey(customApiKey); setShowSettings(true); }}
+            className={`p-2 rounded-full transition-all shadow-sm active:scale-95 ${
+              currentTab === 'ar' 
+                ? 'bg-white/10 text-white hover:bg-white/20' 
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+            title="設定"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+
           <button
             onClick={handleToggleAudio}
             className={`flex items-center px-4 py-2 rounded-full font-bold transition-all shadow-sm active:scale-95 ${
@@ -338,6 +368,61 @@ export default function App() {
         )}
 
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-stone-200">
+            <div className="flex items-center justify-between p-6 border-b border-stone-100 bg-stone-50">
+              <h2 className="text-xl font-bold text-stone-800 flex items-center">
+                <Settings className="w-5 h-5 mr-2 text-stone-500" />
+                設定
+              </h2>
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-200 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-stone-700 mb-2 flex items-center">
+                  <Key className="w-4 h-4 mr-1.5 text-amber-500" />
+                  Gemini API キー
+                </label>
+                <input 
+                  type="password" 
+                  value={tempApiKey}
+                  onChange={(e) => setTempApiKey(e.target.value)}
+                  placeholder="AI Studioから取得したAPIキーを入力"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-stone-200 focus:border-amber-500 focus:outline-none transition-colors text-stone-800 bg-stone-50"
+                />
+                <p className="text-xs text-stone-500 mt-2">
+                  ※入力されたキーはブラウザにのみ保存され、外部には送信されません（AIへのリクエスト時を除く）。
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 bg-stone-50 border-t border-stone-100 flex justify-end gap-3">
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="px-6 py-2.5 rounded-xl font-bold text-stone-600 hover:bg-stone-200 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button 
+                onClick={handleSaveApiKey}
+                className="px-6 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-md transition-colors"
+              >
+                保存する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
